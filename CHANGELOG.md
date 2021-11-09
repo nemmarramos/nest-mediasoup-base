@@ -1,2 +1,2 @@
-RELEASE 1.0.0
+RELEASE 1.0.1
 - Initial release
