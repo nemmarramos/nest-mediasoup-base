@@ -29,9 +29,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nestjsplus/nestjs-package-starter"
+    "url": "https://github.com/nemmarramos/nest-mediasoup-base"
   },
-  "bugs": "https://github.com/nestjsplus/nestjs-package-starter",
+  "bugs": "https://github.com/nemmarramos/nest-mediasoup-base/issues",
   "peerDependencies": {
     "@nestjs/common": "^6.0.0"
   },
