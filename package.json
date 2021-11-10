@@ -1,13 +1,15 @@
 {
   "name": "@nramos/nest-mediasoup-base",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "NestJS npm package starter",
   "author": "Nemmar Ramos <neu.nmr@gmail.com>",
   "license": "MIT",
   "readmeFilename": "README.md",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "types/**/*",
     "*.md"
   ],
   "scripts": {

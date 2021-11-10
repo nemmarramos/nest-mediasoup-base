@@ -1,4 +1,3 @@
-import config from 'config';
 import {
     MessageBody,
     SubscribeMessage,
@@ -28,25 +27,28 @@ import {
 import { Room } from './room';
 import { throwRoomNotFound } from '../../common/errors';
 
-const mediasoupSettings = config.get<IMediasoupSettings>('MEDIASOUP_SETTINGS');
 
 @WebSocketGateway()
 export abstract class BaseGateway
     implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+
     @WebSocketServer()
-    public server: Server;
-    public rooms: Map<string, Room> = new Map();
+    protected server: Server;
+
+    protected rooms: Map<string, Room> = new Map();
 
     private baseLogger: Logger = new Logger('BaseGateway');
-    public workers: {
+    protected workers: {
         [index: number]: { clientsCount: number; roomsCount: number; pid: number; worker: Worker };
     };
 
-    constructor() {
-        this.createWorkers();
+    constructor(mediasoupSettings: IMediasoupSettings) {
+        this.baseLogger.debug('mediasoupSettings', mediasoupSettings)
+
+        this.createWorkers(mediasoupSettings);
     }
 
-    private async createWorkers(): Promise<void> {
+    private async createWorkers(mediasoupSettings: IMediasoupSettings): Promise<void> {
         const promises = [];
         for (let i = 0; i < mediasoupSettings.workerPool; i++) {
             promises.push(mediasoup.createWorker(mediasoupSettings.worker as WorkerSettings));

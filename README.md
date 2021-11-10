@@ -16,12 +16,14 @@
 
 ### Installation
 
-1. Clone the repo
-2. Run npm/yarn install
+Using npm:
+```shell
+$ npm add @nramos/nest-mediasoup-base
+```
 
-```bash
-cd nestjs-package-starter
-npm install
+Using yarn:
+```shell
+$ yarn add @nramos/nest-mediasoup-base
 ```
 
 ## Change Log
