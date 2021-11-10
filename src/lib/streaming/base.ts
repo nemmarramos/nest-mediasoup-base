@@ -12,7 +12,6 @@ import { Logger } from '@nestjs/common';
 import io, { Socket, Server } from 'socket.io';
 import * as mediasoup from 'mediasoup';
 import { WorkerSettings } from 'mediasoup/lib/types';
-import { types as mediasoupTypes } from 'mediasoup';
 import { Worker } from 'mediasoup/lib/types';
 
 import {
@@ -26,7 +25,6 @@ import {
 } from './interfaces';
 import { Room } from './room';
 import { throwRoomNotFound } from '../../common/errors';
-
 
 @WebSocketGateway()
 export abstract class BaseGateway
@@ -85,7 +83,7 @@ export abstract class BaseGateway
     private async loadRoom(
         peerConnection: IPeerConnection,
         socket: io.Socket,
-    ): Promise<mediasoupTypes.RtpCapabilities> {
+    ): Promise<boolean> {
         try {
             const { peerId, room: roomName, userProfile } = peerConnection;
             this.baseLogger.debug('peerConnection', JSON.stringify(peerConnection));
@@ -110,11 +108,7 @@ export abstract class BaseGateway
             });
 
             await room.addClient(peerId, socket, userProfile);
-            const rtpCapabilities = room.getRouterRtpCapabilities() as mediasoupTypes.RtpCapabilities;
-
-            this.baseLogger.log(`rtpCapabilities ${rtpCapabilities}`);
-
-            return rtpCapabilities;
+            return true;
         } catch (error) {
             this.baseLogger.error(error.message, error.stack, 'BaseGateway - handleConnection');
         }
@@ -124,7 +118,7 @@ export abstract class BaseGateway
     async joinRoom(
         @MessageBody() data: IPeerConnection,
         @ConnectedSocket() socket: Socket,
-    ): Promise<mediasoupTypes.RtpCapabilities> {
+    ): Promise<boolean> {
         return this.loadRoom(data, socket);
     }
 
@@ -157,10 +151,13 @@ export abstract class BaseGateway
     }
 
     @SubscribeMessage('sendMessage')
-    async onNewMessage(@MessageBody() data: IRoomMessageWrapper): Promise<any> {
+    async onNewMessage(
+        @MessageBody() data: IRoomMessageWrapper,
+        @ConnectedSocket() socket: Socket,
+    ): Promise<any> {
         const room = this.rooms.get(data.room);
         if (!room) return throwRoomNotFound(null);
-        return room.broadcastAll('newMessage', {
+        return room.broadcast(socket, 'newMessage', {
             ...data.message,
             room: data.room,
         });

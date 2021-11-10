@@ -1,6 +1,6 @@
 {
   "name": "@nramos/nest-mediasoup-base",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "NestJS npm package starter",
   "author": "Nemmar Ramos <neu.nmr@gmail.com>",
   "license": "MIT",
@@ -36,7 +36,7 @@
   },
   "bugs": "https://github.com/nemmarramos/nest-mediasoup-base/issues",
   "peerDependencies": {
-    "@nestjs/common": "^6.0.0"
+    "@nestjs/common": "^8.2.0"
   },
   "dependencies": {
     "config": "^3.3.6",

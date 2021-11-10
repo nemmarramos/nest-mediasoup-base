@@ -88,7 +88,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             if (this.router.closed) {
                 await this.configureWorker();
             }
-
+            this.logger.debug('createWebRtcTransport user', user?.userProfile)
             const { initialAvailableOutgoingBitrate } = mediasoupSettings.webRtcTransport;
 
             const transport = await this.router.createWebRtcTransport({
@@ -140,7 +140,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 }`,
             );
             const user = this.clients.get(data.peerId);
-            const userToConsume = this.clients.get(data.toConsumePeerId);
+            let userToConsume = data.toConsumePeerId ? this.clients.get(data.toConsumePeerId) : this.host;
             let fromProducer: Producer;
 
             // this.logger.log('hostClient', hostClient.media.producerVideo)
