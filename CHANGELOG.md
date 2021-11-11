@@ -7,3 +7,7 @@ RELEASE 1.0.3
 
 RELEASE 1.0.4
 - Update peerDependencies @nestjs/common to v8.2.0
+
+RELEASE 1.1.0
+- Added IRoom interface.
+- BaseGateway generic type for extending room functionalities.

@@ -8,7 +8,7 @@ import {
     WebRtcTransport,
 } from 'mediasoup/lib/types';
 
-type UserType = 'producer' | 'consumer';
+export type UserType = 'producer' | 'consumer';
 
 export interface IProduceTrack {
     rtpParameters: RTCRtpParameters;
@@ -34,6 +34,18 @@ export interface IPeerConnection {
 export interface IRoom {
     load(): Promise<void>;
     close(): Promise<void>;
+    setHost(user: IRoomClient);
+    onPeerSocketDisconnect(peerId: string);
+    onPeerSocketDisconnect(peerId: string);
+    addClient(peerId: string, client: io.Socket, userProfile: IClientProfile)
+    participants(): IClientProfile[];
+    leave(peerId: string);
+    createWebRtcTransport(data: { type: UserType }, peerId: string): Promise<object>
+    getRouterRtpCapabilities();
+    consume(data: IPeerConsumerTransport): Promise<Object>;
+    broadcast(client: io.Socket, event: string, msg: object): Promise<boolean>;
+    connectWebRTCTransport(data: IProducerConnectorTransport);
+    produce(data: IProduceTrack): Promise<string>;
 }
 
 export interface IRoomMessageWrapper {
@@ -44,12 +56,6 @@ export interface IRoomMessageWrapper {
 export interface IRoomMessage {
     content: string;
     from: IClientProfile;
-}
-
-export interface IGift {
-    code: string;
-    name: string;
-    url: string;
 }
 
 export interface IClientQuery {
@@ -111,23 +117,23 @@ export interface IWorkerInfo {
 
 export interface IMsMessage {
     readonly action:
-        | 'getRouterRtpCapabilities'
-        | 'createWebRtcTransport'
-        | 'connectWebRtcTransport'
-        | 'produce'
-        | 'consume'
-        | 'restartIce'
-        | 'requestConsumerKeyFrame'
-        | 'getTransportStats'
-        | 'getProducerStats'
-        | 'getConsumerStats'
-        | 'getAudioProducerIds'
-        | 'getVideoProducerIds'
-        | 'producerClose'
-        | 'producerPause'
-        | 'producerResume'
-        | 'allProducerClose'
-        | 'allProducerPause'
-        | 'allProducerResume';
+    | 'getRouterRtpCapabilities'
+    | 'createWebRtcTransport'
+    | 'connectWebRtcTransport'
+    | 'produce'
+    | 'consume'
+    | 'restartIce'
+    | 'requestConsumerKeyFrame'
+    | 'getTransportStats'
+    | 'getProducerStats'
+    | 'getConsumerStats'
+    | 'getAudioProducerIds'
+    | 'getVideoProducerIds'
+    | 'producerClose'
+    | 'producerPause'
+    | 'producerResume'
+    | 'allProducerClose'
+    | 'allProducerPause'
+    | 'allProducerResume';
     readonly data?: object;
 }

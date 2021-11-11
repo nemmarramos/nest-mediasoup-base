@@ -23,24 +23,24 @@ import {
     IClientProfile,
     IConsumePeerTransport,
 } from './interfaces';
-import { Room } from './room';
 import { throwRoomNotFound } from '../../common/errors';
+import { IRoom } from './interfaces';
 
 @WebSocketGateway()
-export abstract class BaseGateway
+export abstract class BaseGateway<T extends IRoom>
     implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
     @WebSocketServer()
     protected server: Server;
 
-    protected rooms: Map<string, Room> = new Map();
+    protected rooms: Map<string, T> = new Map();
 
     private baseLogger: Logger = new Logger('BaseGateway');
     protected workers: {
         [index: number]: { clientsCount: number; roomsCount: number; pid: number; worker: Worker };
     };
 
-    constructor(mediasoupSettings: IMediasoupSettings) {
+    constructor(mediasoupSettings: IMediasoupSettings, private roomType) {
         this.baseLogger.debug('mediasoupSettings', mediasoupSettings)
 
         this.createWorkers(mediasoupSettings);
@@ -68,7 +68,7 @@ export abstract class BaseGateway
     //   return client.handshake.query as unknown as IClientQuery;
     // }
 
-    private getOptimalWorkerIndex(): number {
+    protected getOptimalWorkerIndex(): number {
         return parseInt(
             Object.entries(this.workers).reduce((prev, curr) => {
                 if (prev[1].clientsCount < curr[1].clientsCount) {
@@ -80,7 +80,7 @@ export abstract class BaseGateway
         );
     }
 
-    private async loadRoom(
+    protected async loadRoom(
         peerConnection: IPeerConnection,
         socket: io.Socket,
     ): Promise<boolean> {
@@ -92,7 +92,7 @@ export abstract class BaseGateway
             this.baseLogger.log('isLoaded', Boolean(room));
             if (!room) {
                 const index = this.getOptimalWorkerIndex();
-                room = new Room(this.workers[index].worker, index, roomName, this.server);
+                room = new this.roomType(this.workers[index].worker, index, roomName, this.server);
 
                 await room.load();
 

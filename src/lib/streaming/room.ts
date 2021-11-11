@@ -20,16 +20,16 @@ import {
     IProduceTrack,
     IRoom,
     IRoomClient,
+    UserType
 } from './interfaces';
 
 const mediasoupSettings = config.get<IMediasoupSettings>('MEDIASOUP_SETTINGS');
-type TPeer = 'producer' | 'consumer';
 
 export class Room extends EnhancedEventEmitter implements IRoom {
     public readonly clients: Map<string, IRoomClient> = new Map();
     public router: mediasoupTypes.Router;
     public audioLevelObserver: mediasoupTypes.AudioLevelObserver;
-    private logger: Logger = new Logger('Room');
+    private baseLogger: Logger = new Logger('Room');
     private host: IRoomClient;
 
     constructor(
@@ -39,6 +39,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
         private readonly socketServer: io.Server,
     ) {
         super();
+        this.configureWorker()
     }
 
     private async configureWorker() {
@@ -70,35 +71,36 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             });
         } catch (error) {
             console.error(error);
-            this.logger.error(error.message, error.stack, 'Room - configureWorker');
+            this.baseLogger.error(error.message, error.stack, 'Room - configureWorker');
         }
     }
 
     // private getHostMediaClient(): IMediasoupClient {
     //   const hostClient = this.clients.get(this.host.id)
     //   // console.log('hostClient', hostClient)
-    //   // this.logger.debug('getHostMediaClient hostClient', JSON.stringify(hostClient))
+    //   // this.baseLogger.debug('getHostMediaClient hostClient', JSON.stringify(hostClient))
     //   return hostClient && hostClient.media
     // }
 
-    public async createWebRtcTransport(data: { type: TPeer }, peerId: string): Promise<object> {
+    public async createWebRtcTransport(data: { type: UserType }, peerId: string): Promise<object> {
         try {
-            this.logger.log(`room ${this.name} createWebRtcTransport - ${data.type}`);
+            this.baseLogger.log(`room ${this.name} createWebRtcTransport - ${data.type}`);
             const user = this.clients.get(peerId);
             if (this.router.closed) {
                 await this.configureWorker();
             }
-            this.logger.debug('createWebRtcTransport user', user?.userProfile)
+            this.baseLogger.debug('createWebRtcTransport user', user?.userProfile)
             const { initialAvailableOutgoingBitrate } = mediasoupSettings.webRtcTransport;
-
-            const transport = await this.router.createWebRtcTransport({
+            const rtcTransportParameters = {
                 listenIps: mediasoupSettings.webRtcTransport.listenIps,
                 enableUdp: true,
                 enableSctp: true,
                 enableTcp: true,
                 initialAvailableOutgoingBitrate,
                 appData: { peerId, type: data.type },
-            });
+            }
+            this.baseLogger.debug('createWebRtcTransport rtcTransportParameters', rtcTransportParameters)
+            const transport = await this.router.createWebRtcTransport(rtcTransportParameters);
 
             switch (data.type) {
                 case 'producer':
@@ -122,7 +124,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             };
         } catch (error) {
             console.error(error);
-            this.logger.error(
+            this.baseLogger.error(
                 error.message,
                 error.stack,
                 'MediasoupHelper - createWebRtcTransport',
@@ -133,8 +135,8 @@ export class Room extends EnhancedEventEmitter implements IRoom {
     public async consume(data: IPeerConsumerTransport): Promise<Object> {
         try {
             const { peerId } = data;
-            this.logger.log(`consumer requested by ${peerId}`);
-            this.logger.log(
+            this.baseLogger.log(`consumer requested by ${peerId}`);
+            this.baseLogger.log(
                 `room-${this.name} | consumer-peerId ${data.peerId} | producer-peerId:${
                     data.toConsumePeerId
                 }`,
@@ -143,9 +145,9 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             let userToConsume = data.toConsumePeerId ? this.clients.get(data.toConsumePeerId) : this.host;
             let fromProducer: Producer;
 
-            // this.logger.log('hostClient', hostClient.media.producerVideo)
-            this.logger.log('data.kind', data.kind);
-            this.logger.log('this.host.id', this.host.id);
+            // this.baseLogger.log('hostClient', hostClient.media.producerVideo)
+            this.baseLogger.log('data.kind', data.kind);
+            this.baseLogger.log('this.host.id', this.host.id);
 
             if (data.kind === 'video') {
                 fromProducer = userToConsume.media.producerVideo;
@@ -154,12 +156,12 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             if (data.kind === 'audio') {
                 fromProducer = userToConsume.media.producerAudio;
             }
-            this.logger.log(`userToConsume: ${userToConsume.userProfile.identifier}`);
-            this.logger.log(`fromProducer.id: ${fromProducer && fromProducer.id}`);
+            this.baseLogger.log(`userToConsume: ${userToConsume.userProfile.identifier}`);
+            this.baseLogger.log(`fromProducer.id: ${fromProducer && fromProducer.id}`);
 
             const { rtpCapabilities } = this.router;
 
-            this.logger.log('userToConsume', userToConsume.userProfile.identifier);
+            this.baseLogger.log('userToConsume', userToConsume.userProfile.identifier);
 
             if (
                 !fromProducer ||
@@ -198,13 +200,13 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                     user.media.consumersVideo.set(data.peerId, consumer);
 
                     consumer.on('transportclose', async () => {
-                        this.logger.debug('transportclose');
+                        this.baseLogger.debug('transportclose');
                         consumer.close();
                         user.media.consumersVideo.delete(data.peerId);
                     });
 
                     consumer.on('producerclose', async () => {
-                        this.logger.debug('producerclose');
+                        this.baseLogger.debug('producerclose');
                         user.io.emit('mediaProducerClose', {
                             peerId: data.peerId,
                             kind: data.kind,
@@ -247,7 +249,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             });
 
             consumer.on('score', (score: ConsumerScore) => {
-                this.logger.debug(
+                this.baseLogger.debug(
                     `room ${this.name} user ${peerId} consumer ${data.kind} score ${JSON.stringify(
                         score,
                     )}`,
@@ -255,7 +257,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             });
 
             consumer.on('debug', (layers: ConsumerLayers | null) => {
-                this.logger.debug(
+                this.baseLogger.debug(
                     `room ${this.name} user ${peerId} consumer ${
                         data.kind
                     } layerschange ${JSON.stringify(layers)}`,
@@ -275,18 +277,18 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 producerPaused: consumer.producerPaused,
             };
         } catch (error) {
-            this.logger.error(error.message, error.stack, 'MediasoupHelper - consume');
+            this.baseLogger.error(error.message, error.stack, 'MediasoupHelper - consume');
         }
     }
 
     public async broadcast(client: io.Socket, event: string, msg: object): Promise<boolean> {
         try {
-            this.logger.debug('name', this.name);
-            this.logger.debug('event', event);
-            this.logger.debug('msg', msg);
+            this.baseLogger.debug('name', this.name);
+            this.baseLogger.debug('event', event);
+            this.baseLogger.debug('msg', msg);
             return client.broadcast.to(this.name).emit(event, msg);
         } catch (error) {
-            this.logger.error(error.message, error.stack, 'Room - broadcast');
+            this.baseLogger.error(error.message, error.stack, 'Room - broadcast');
         }
     }
 
@@ -294,33 +296,33 @@ export class Room extends EnhancedEventEmitter implements IRoom {
         try {
             return this.socketServer.to(this.host.io.id).emit(event, msg);
         } catch (error) {
-            this.logger.error(error.message, error.stack, 'Room - broadcastAll');
+            this.baseLogger.error(error.message, error.stack, 'Room - broadcastAll');
         }
     }
 
     public broadcastAll(event: string, msg: object): void {
         try {
-            this.logger.log(`Broadcast all to room: ${this.name}, msg: ${JSON.stringify(msg)}`);
+            this.baseLogger.log(`Broadcast all to room: ${this.name}, msg: ${JSON.stringify(msg)}`);
             this.socketServer.to(this.name).emit(event, msg);
         } catch (error) {
-            this.logger.error(error.message, error.stack, 'Room - broadcastAll');
+            this.baseLogger.error(error.message, error.stack, 'Room - broadcastAll');
         }
     }
 
     public onPeerSocketDisconnect(peerId: string) {
-        this.logger.log('Room peer disconnected', peerId);
+        this.baseLogger.log('Room peer disconnected', peerId);
 
         const isHost = this.host.id === peerId;
         const user = this.clients.get(peerId);
 
         if (isHost) {
-            // this.logger.log('room host left')
-            // this.broadcastAll('roomClosed', null)
-            // this.close()
+            this.baseLogger.log('room host left')
+            this.broadcastAll('roomClosed', null)
+            this.close()
         }
 
         if (!user) return;
-        this.logger.log(`Room peer user ${JSON.stringify(user.userProfile)}`);
+        this.baseLogger.log(`Room peer user ${JSON.stringify(user.userProfile)}`);
         const { io: client, media } = user;
         if (client) {
             this.broadcast(client, 'userDisconnected', user.userProfile);
@@ -348,38 +350,38 @@ export class Room extends EnhancedEventEmitter implements IRoom {
 
             return true;
         } catch (error) {
-            this.logger.error(error.message, error.stack, 'Room - closeMediaClient');
+            this.baseLogger.error(error.message, error.stack, 'Room - closeMediaClient');
         }
     }
 
     public async connectWebRTCTransport(data: IProducerConnectorTransport) {
         try {
             const user = this.clients.get(data.peerId);
-            this.logger.log('<----connectWebRTCTransport-----');
-            this.logger.log(`data.room: ${data.room}`);
-            this.logger.log(`data.peerId: ${data.peerId}`);
-            this.logger.log(`data.type: ${data.type}`);
-            this.logger.debug(`data.dtlsParameters: ${JSON.stringify(data.dtlsParameters)}`);
+            this.baseLogger.log('<----connectWebRTCTransport-----');
+            this.baseLogger.log(`data.room: ${data.room}`);
+            this.baseLogger.log(`data.peerId: ${data.peerId}`);
+            this.baseLogger.log(`data.type: ${data.type}`);
+            this.baseLogger.debug(`data.dtlsParameters: ${JSON.stringify(data.dtlsParameters)}`);
 
             if (data.type === 'producer') {
-                this.logger.debug(
+                this.baseLogger.debug(
                     `user.media.producerTransport.closed: ${user.media.producerTransport.closed}`,
                 );
                 await user.media.producerTransport.connect({ dtlsParameters: data.dtlsParameters });
             }
 
             if (data.type === 'consumer') {
-                this.logger.debug(
+                this.baseLogger.debug(
                     `user.media.consumerTransport.closed: ${user.media.consumerTransport.closed}`,
                 );
                 await user.media.consumerTransport.connect({ dtlsParameters: data.dtlsParameters });
             }
-            this.logger.log('-----connectWebRTCTransport---->');
+            this.baseLogger.log('-----connectWebRTCTransport---->');
 
             return true;
         } catch (error) {
-            this.logger.log('-----connectWebRTCTransport---->');
-            this.logger.error(
+            this.baseLogger.log('-----connectWebRTCTransport---->');
+            this.baseLogger.error(
                 error.message,
                 error.stack,
                 'MediasoupHelper - connectProducerTransport',
@@ -389,8 +391,8 @@ export class Room extends EnhancedEventEmitter implements IRoom {
 
     public async produce(data: IProduceTrack): Promise<string> {
         try {
-            this.logger.log('wss:produce');
-            this.logger.log('clientCount', this.clientCount);
+            this.baseLogger.log('wss:produce');
+            this.baseLogger.log('clientCount', this.clientCount);
             const user = this.clients.get(data.peerId);
 
             if (user && this.clientCount < 2) {
@@ -408,10 +410,10 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 ...data,
                 appData: { peerId: data.peerId, kind: data.kind },
             });
-            this.logger.log('data.kind', data.kind);
+            this.baseLogger.log('data.kind', data.kind);
 
             if (data.kind === 'video') {
-                this.logger.log('video produce');
+                this.baseLogger.log('video produce');
 
                 user.media.producerVideo = producer;
             }
@@ -422,7 +424,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
 
             return producer.id;
         } catch (error) {
-            this.logger.log('Error', error);
+            this.baseLogger.log('Error', error);
             return Promise.resolve(null);
         }
     }
@@ -449,15 +451,15 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                     process.env.STREAM_ENDED_EVENT_QUEUE ||
                     'http://0.0.0.0:9324/queue/StreamEndedEventQueue',
             };
-            this.logger.debug(`sqs params => ${JSON.stringify(params)}`);
+            this.baseLogger.debug(`sqs params => ${JSON.stringify(params)}`);
 
             this.clients.clear();
             this.audioLevelObserver.close();
             this.router.close();
 
-            this.logger.debug(`room ${this.name} closed`);
+            this.baseLogger.debug(`room ${this.name} closed`);
         } catch (error) {
-            this.logger.log('Error', error);
+            this.baseLogger.log('Error', error);
         }
     }
 
@@ -469,7 +471,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
         try {
             await this.configureWorker();
         } catch (error) {
-            this.logger.log('Error', error);
+            this.baseLogger.log('Error', error);
         }
     }
 
@@ -539,19 +541,30 @@ export class Room extends EnhancedEventEmitter implements IRoom {
         userProfile: IClientProfile,
     ): Promise<boolean> {
         try {
-            this.logger.debug(`${peerId} connected to room ${this.name}`);
-            this.logger.debug(`${peerId} profile ${JSON.stringify(userProfile)}`);
+            this.baseLogger.debug(`${peerId} connected to room ${this.name}`);
+            this.baseLogger.debug(`${peerId} profile ${JSON.stringify(userProfile)}`);
             this.clients.set(peerId, { io: client, id: peerId, userProfile, media: {} });
 
             client.join(this.name);
-            this.logger.debug('room', this.name, 'Room - addClient');
-            this.logger.debug('peerId', peerId, 'Room - addClient');
-
-            await this.broadcast(client, 'userJoined', userProfile);
+            this.baseLogger.debug('room', this.name, 'Room - addClient');
+            this.baseLogger.debug('peerId', peerId, 'Room - addClient');
+            const alertMessage = `<i>${userProfile.displayName} joined the stream</i>`;
+            const message = {
+                content: '',
+                room: this.name,
+                from: {
+                    name: alertMessage,
+                    picture: userProfile.picture,
+                    username: userProfile.identifier,
+                },
+                clickable: true,
+                isHtml: true,
+            }
+            await this.broadcastToHost('newMessage', message);
 
             return true;
         } catch (error) {
-            this.logger.error(error.message, error.stack, 'Room - addClient');
+            this.baseLogger.error(error.message, error.stack, 'Room - addClient');
         }
     }
 
