@@ -137,8 +137,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             const { peerId } = data;
             this.baseLogger.log(`consumer requested by ${peerId}`);
             this.baseLogger.log(
-                `room-${this.name} | consumer-peerId ${data.peerId} | producer-peerId:${
-                    data.toConsumePeerId
+                `room-${this.name} | consumer-peerId ${data.peerId} | producer-peerId:${data.toConsumePeerId
                 }`,
             );
             const user = this.clients.get(data.peerId);
@@ -172,8 +171,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 })
             ) {
                 throw new Error(
-                    `Couldn't consume ${data.kind} with 'peerId'=${user.id} and 'room_id'=${
-                        this.name
+                    `Couldn't consume ${data.kind} with 'peerId'=${user.id} and 'room_id'=${this.name
                     }`,
                 );
             }
@@ -258,8 +256,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
 
             consumer.on('debug', (layers: ConsumerLayers | null) => {
                 this.baseLogger.debug(
-                    `room ${this.name} user ${peerId} consumer ${
-                        data.kind
+                    `room ${this.name} user ${peerId} consumer ${data.kind
                     } layerschange ${JSON.stringify(layers)}`,
                 );
             });
@@ -401,8 +398,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             const transport = user.media.producerTransport;
             if (!transport) {
                 throw new Error(
-                    `Couldn't find producer transport with 'peerId'=${data.peerId} and 'room_id'=${
-                        this.name
+                    `Couldn't find producer transport with 'peerId'=${data.peerId} and 'room_id'=${this.name
                     }`,
                 );
             }
@@ -422,6 +418,11 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 await this.audioLevelObserver.addProducer({ producerId: producer.id });
             }
 
+            this.broadcast(user.io, 'onNewProducer', {
+                peerId: data.peerId,
+                producerId: producer.id,
+                kind: data.kind,
+            })
             return producer.id;
         } catch (error) {
             this.baseLogger.log('Error', error);
@@ -560,7 +561,9 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 clickable: true,
                 isHtml: true,
             }
+
             await this.broadcastToHost('newMessage', message);
+            await this.broadcast(client, 'userJoined', userProfile);
 
             return true;
         } catch (error) {

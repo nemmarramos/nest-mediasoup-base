@@ -11,3 +11,6 @@ RELEASE 1.0.4
 RELEASE 1.1.0
 - Added IRoom interface.
 - BaseGateway generic type for extending room functionalities.
+
+RELEASE 1.1.1
+- Emit newProducer event when someone produce A/V.
