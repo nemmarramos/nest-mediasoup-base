@@ -6,7 +6,4 @@ import { BaseGateway } from './lib/streaming/base';
 export * from './lib/streaming/interfaces';
 export { Room } from './lib/streaming/room';
 
-
-export {
-    BaseGateway
-}
+export { BaseGateway };

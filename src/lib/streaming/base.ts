@@ -29,7 +29,6 @@ import { IRoom } from './interfaces';
 @WebSocketGateway()
 export abstract class BaseGateway<T extends IRoom>
     implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-
     @WebSocketServer()
     protected server: Server;
 
@@ -41,7 +40,7 @@ export abstract class BaseGateway<T extends IRoom>
     };
 
     constructor(mediasoupSettings: IMediasoupSettings, private roomType) {
-        this.baseLogger.debug('mediasoupSettings', mediasoupSettings)
+        this.baseLogger.debug('mediasoupSettings', mediasoupSettings);
 
         this.createWorkers(mediasoupSettings);
     }
@@ -80,10 +79,7 @@ export abstract class BaseGateway<T extends IRoom>
         );
     }
 
-    protected async loadRoom(
-        peerConnection: IPeerConnection,
-        socket: io.Socket,
-    ): Promise<boolean> {
+    protected async loadRoom(peerConnection: IPeerConnection, socket: io.Socket): Promise<boolean> {
         try {
             const { peerId, room: roomName, userProfile } = peerConnection;
             this.baseLogger.debug('peerConnection', JSON.stringify(peerConnection));
