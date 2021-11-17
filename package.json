@@ -1,6 +1,6 @@
 {
   "name": "@nramos/nest-mediasoup-base",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "NestJS npm package starter",
   "author": "Nemmar Ramos <neu.nmr@gmail.com>",
   "license": "MIT",

@@ -14,3 +14,6 @@ RELEASE 1.1.0
 
 RELEASE 1.1.1
 - Emit newProducer event when someone produce A/V.
+
+RELEASE 1.1.2
+- Room attributes changed to protected var.

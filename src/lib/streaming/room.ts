@@ -26,11 +26,11 @@ import {
 const mediasoupSettings = config.get<IMediasoupSettings>('MEDIASOUP_SETTINGS');
 
 export class Room extends EnhancedEventEmitter implements IRoom {
-    public readonly clients: Map<string, IRoomClient> = new Map();
-    public router: mediasoupTypes.Router;
-    public audioLevelObserver: mediasoupTypes.AudioLevelObserver;
-    private baseLogger: Logger = new Logger('Room');
-    private host: IRoomClient;
+    protected readonly clients: Map<string, IRoomClient> = new Map();
+    protected router: mediasoupTypes.Router;
+    protected audioLevelObserver: mediasoupTypes.AudioLevelObserver;
+    protected baseLogger: Logger = new Logger('Room');
+    protected host: IRoomClient;
 
     constructor(
         private worker: Worker,
@@ -101,7 +101,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
             }
             this.baseLogger.debug('createWebRtcTransport rtcTransportParameters', rtcTransportParameters)
             const transport = await this.router.createWebRtcTransport(rtcTransportParameters);
-
+            if (!user) return {}
             switch (data.type) {
                 case 'producer':
                     user.media.producerTransport = transport;
@@ -444,15 +444,6 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                     this.closeMediaClient(media);
                 }
             });
-
-            var params = {
-                DelaySeconds: 1,
-                MessageBody: this.name,
-                QueueUrl:
-                    process.env.STREAM_ENDED_EVENT_QUEUE ||
-                    'http://0.0.0.0:9324/queue/StreamEndedEventQueue',
-            };
-            this.baseLogger.debug(`sqs params => ${JSON.stringify(params)}`);
 
             this.clients.clear();
             this.audioLevelObserver.close();
