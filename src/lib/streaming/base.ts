@@ -83,7 +83,7 @@ export abstract class BaseGateway<T extends IRoom>
         try {
             const { peerId, room: roomName, userProfile } = peerConnection;
             this.baseLogger.debug('peerConnection', JSON.stringify(peerConnection));
-            let room = this.rooms.get(roomName);
+            let room = this.rooms.get(roomName) as T;
             this.baseLogger.log('Checking room status');
             this.baseLogger.log('isLoaded', Boolean(room));
             if (!room) {
@@ -100,7 +100,7 @@ export abstract class BaseGateway<T extends IRoom>
 
             socket.on('disconnect', u => {
                 this.baseLogger.log('user disconnected', u);
-                room.onPeerSocketDisconnect(peerId);
+                room.leave(peerId);
             });
 
             await room.addClient(peerId, socket, userProfile);
@@ -120,28 +120,28 @@ export abstract class BaseGateway<T extends IRoom>
 
     @SubscribeMessage('getParticipants')
     async getParticipants(@MessageBody() data: IPeerConnection): Promise<IClientProfile[]> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.participants();
     }
 
     @SubscribeMessage('leaveRoom')
     async leaveRoom(@MessageBody() data: IPeerConnection): Promise<void> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.leave(data.peerId);
     }
 
     @SubscribeMessage('createWebRTCTransport')
     async createWebRTCTransport(@MessageBody() data: IPeerTransport): Promise<any> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.createWebRtcTransport({ type: data.type }, data.peerId);
     }
 
     @SubscribeMessage('getRtpCapabilities')
     async getRtpCapabilities(@MessageBody() data: IPeerTransport): Promise<any> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.getRouterRtpCapabilities();
     }
@@ -151,7 +151,7 @@ export abstract class BaseGateway<T extends IRoom>
         @MessageBody() data: IRoomMessageWrapper,
         @ConnectedSocket() socket: Socket,
     ): Promise<any> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.broadcast(socket, 'newMessage', {
             ...data.message,
@@ -161,21 +161,21 @@ export abstract class BaseGateway<T extends IRoom>
 
     @SubscribeMessage('consume')
     async consume(@MessageBody() data: IConsumePeerTransport): Promise<any> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.consume(data);
     }
 
     @SubscribeMessage('connectWebRTCTransport')
     async connectWebRTCTransport(@MessageBody() data: IProducerConnectorTransport): Promise<any> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (!room) return throwRoomNotFound(null);
         return room.connectWebRTCTransport(data);
     }
 
     @SubscribeMessage('produce')
     produce(@MessageBody() data: IProduceTrack): Promise<string> {
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (room) return room.produce(data as IProduceTrack);
         return Promise.resolve(null);
     }
@@ -183,7 +183,7 @@ export abstract class BaseGateway<T extends IRoom>
     @SubscribeMessage('unpublishRoom')
     unpublishRoom(@MessageBody() data: any): Promise<void> {
         this.baseLogger.log('unpublishRoom', data);
-        const room = this.rooms.get(data.room);
+        const room = this.rooms.get(data.room) as T;
         if (room) return room.close();
         return Promise.resolve();
     }

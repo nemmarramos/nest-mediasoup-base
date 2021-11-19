@@ -17,3 +17,8 @@ RELEASE 1.1.1
 
 RELEASE 1.1.2
 - Room attributes changed to protected var.
+
+RELEASE 1.1.3
+- Base room class attribute baseLogger changed from protected to private var.
+- Load room function will call now room as T generic.
+- Added closeProducerTransports function in base room for closing of client producer transports.

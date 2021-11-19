@@ -26,10 +26,10 @@ import {
 const mediasoupSettings = config.get<IMediasoupSettings>('MEDIASOUP_SETTINGS');
 
 export class Room extends EnhancedEventEmitter implements IRoom {
+    private baseLogger: Logger = new Logger('Room');
     protected readonly clients: Map<string, IRoomClient> = new Map();
     protected router: mediasoupTypes.Router;
     protected audioLevelObserver: mediasoupTypes.AudioLevelObserver;
-    protected baseLogger: Logger = new Logger('Room');
     protected host: IRoomClient;
 
     constructor(
@@ -309,25 +309,45 @@ export class Room extends EnhancedEventEmitter implements IRoom {
     public onPeerSocketDisconnect(peerId: string) {
         this.baseLogger.log('Room peer disconnected', peerId);
 
-        const isHost = this.host.id === peerId;
         const user = this.clients.get(peerId);
 
-        if (isHost) {
-            this.baseLogger.log('room host left')
-            this.broadcastAll('roomClosed', null)
-            this.close()
-        }
+        // if (isHost) {
+        //     this.baseLogger.log('room host left')
+        //     this.broadcastAll('roomClosed', null)
+        //     this.close()
+        // }
 
         if (!user) return;
         this.baseLogger.log(`Room peer user ${JSON.stringify(user.userProfile)}`);
         const { io: client, media } = user;
         if (client) {
-            this.broadcast(client, 'userDisconnected', user.userProfile);
+            this.broadcast(client, 'userDisconnected', {
+                peerId,
+                userProfile: user.userProfile
+            });
 
             this.closeMediaClient(media);
             client.leave(peerId);
         }
         this.clients.delete(peerId);
+    }
+
+    protected closeProducerTransports(mediaClient: IMediasoupClient): boolean {
+        try {
+            if (mediaClient.producerVideo && !mediaClient.producerVideo.closed) {
+                mediaClient.producerVideo.close();
+            }
+            if (mediaClient.producerAudio && !mediaClient.producerAudio.closed) {
+                mediaClient.producerAudio.close();
+            }
+            if (mediaClient.producerTransport && !mediaClient.producerTransport.closed) {
+                mediaClient.producerTransport.close();
+            }
+
+            return true;
+        } catch (error) {
+            this.baseLogger.error(error.message, error.stack, 'Room - closeProducerTransports');
+        }
     }
 
     private closeMediaClient(mediaClient: IMediasoupClient): boolean {
