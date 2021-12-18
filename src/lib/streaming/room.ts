@@ -442,6 +442,7 @@ export class Room extends EnhancedEventEmitter implements IRoom {
                 peerId: data.peerId,
                 producerId: producer.id,
                 kind: data.kind,
+                userProfile: user.userProfile
             })
             return producer.id;
         } catch (error) {
