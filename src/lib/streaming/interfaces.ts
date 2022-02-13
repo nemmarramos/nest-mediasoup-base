@@ -68,6 +68,7 @@ export interface IClientProfile {
     identifier: string;
     displayName: string;
     picture: string;
+    extras?: Object;
 }
 
 export interface IRoomClient {

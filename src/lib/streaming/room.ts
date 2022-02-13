@@ -311,12 +311,6 @@ export class Room extends EnhancedEventEmitter implements IRoom {
 
         const user = this.clients.get(peerId);
 
-        // if (isHost) {
-        //     this.baseLogger.log('room host left')
-        //     this.broadcastAll('roomClosed', null)
-        //     this.close()
-        // }
-
         if (!user) return;
         this.baseLogger.log(`Room peer user ${JSON.stringify(user.userProfile)}`);
         const { io: client, media } = user;
